@@ -1,0 +1,137 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sat Oct 31 21:36:35 2020
+not finished because computer died
+@author: shaoo
+"""
+
+import numpy as np
+from scipy.io import loadmat
+import random
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import classification_report
+from sklearn.linear_model import LogisticRegression 
+from sklearn.svm import SVC
+import scipy
+from sklearn.neural_network import MLPClassifier
+import timeit
+
+
+
+#read the data
+data = loadmat('mnist_10digits.mat')
+n_train, m = np.shape(data['xtrain'])
+train_data = data['xtrain']
+train_label = data['ytrain']
+test_data = data['xtest']
+test_label = data['ytest']
+n_test, m = np.shape(data['xtest'])
+idx_train = list(range(n_train))
+idx_test = list(range(n_test))
+train_idx = random.sample(idx_train, 5000)
+test_idx = random.sample(idx_test, 1000)
+
+train_data_sample = []
+train_label_sample = []
+test_data_sample = []
+test_label_sample = []
+for i in range(len(train_idx)):
+    train_data_sample.append(list(data['xtrain'][train_idx[i],:]))
+    train_label_sample.append(list(data['ytrain'][:,train_idx[i]]))
+train_data_sample = np.reshape(train_data_sample,(5000,m)) 
+train_label_sample = np.reshape(train_label_sample,(5000,1)) 
+train_data_sample = np.true_divide(train_data_sample, 255)
+for i in range(len(test_idx)):
+    test_data_sample.append(list(data['xtrain'][test_idx[i],:]))
+    test_label_sample.append(list(data['ytrain'][:,test_idx[i]]))
+test_data_sample = np.reshape(test_data_sample,(1000,m)) 
+test_label_sample = np.reshape(test_label_sample,(1000,1)) 
+test_data_sample = np.true_divide(test_data_sample, 255)
+#test_label_sample = np.reshape(test_label_sample,(1000,))
+
+#KNN
+start = timeit.default_timer()
+neigh = KNeighborsClassifier(n_neighbors=2)
+neigh.fit(train_data_sample, train_label_sample)
+y_pred_knn = neigh.predict(test_data_sample)
+#confusion matrix, precision, recall, and F1 score
+confmx_knn = confusion_matrix(test_label_sample, y_pred_knn, labels=[1,2,3,4,5,6,7,8,9,10])
+print(confmx_knn)
+target_names = ['1','2','3','4','5','6','7','8','9','10']
+print(classification_report(test_label_sample, y_pred_knn, target_names=target_names))
+#record time
+stop = timeit.default_timer()
+execution_time = stop - start
+print("KNN Executed in "+str(execution_time))
+
+#Logistic Regression
+start = timeit.default_timer()
+classifier = LogisticRegression(max_iter=100, solver='liblinear')
+classifier.fit(train_data_sample, train_label_sample)
+y_pred_log = classifier.predict(test_data_sample)
+#confusion matrix, precision, recall, and F1 score
+confmx_log = confusion_matrix(test_label_sample, y_pred_log, labels=[1,2,3,4,5,6,7,8,9,10])
+print(confmx_log)
+target_names = ['1','2','3','4','5','6','7','8','9','10']
+print(classification_report(test_label_sample, y_pred_log, target_names=target_names))
+#record time
+stop = timeit.default_timer()
+execution_time = stop - start
+print("Logistic Regression Executed in "+str(execution_time))
+
+#SVM
+start = timeit.default_timer()
+svclassifier = SVC(kernel='linear')
+svclassifier.fit(train_data_sample, train_label_sample)
+y_pred_svm = svclassifier.predict(test_data_sample)
+#confusion matrix, precision, recall, and F1 score
+confmx_svm = confusion_matrix(test_label_sample, y_pred_svm, labels=[1,2,3,4,5,6,7,8,9,10])
+print(confmx_svm)
+target_names = ['1','2','3','4','5','6','7','8','9','10']
+print(classification_report(test_label_sample, y_pred_svm, target_names=target_names))
+#record time
+stop = timeit.default_timer()
+execution_time = stop - start
+print("SVM Executed in "+str(execution_time))
+
+#kernel SVM RBF
+
+sigma_sample = []
+idx_sigma = list(range(5000))
+sigmasample_idx = random.sample(idx_sigma, 1000)
+for i in range(len(sigmasample_idx)):
+    sigma_sample.append(list(train_data_sample[i,:]))
+sigma_sample = np.reshape(sigma_sample,(1000,m)) 
+sigma = np.median(scipy.spatial.distance.pdist(sigma_sample, 'euclidean'))
+gamma_median_trick = 1/2 /(sigma**2)
+
+start = timeit.default_timer()
+#svm_rbf = SVC(kernel='rbf', C=1.0, gamma=0.1)
+svm_rbf = SVC(kernel='rbf', random_state=0, gamma=gamma_median_trick, C=1)
+svm_rbf.fit(train_data_sample, train_label_sample)
+y_pred_svmrbf = svm_rbf.predict(test_data_sample)
+#confusion matrix, precision, recall, and F1 score
+confmx_svmrbf = confusion_matrix(test_label_sample, y_pred_svmrbf, labels=[1,2,3,4,5,6,7,8,9,10])
+print(confmx_svmrbf)
+target_names = ['1','2','3','4','5','6','7','8','9','10']
+print(classification_report(test_label_sample, y_pred_svmrbf, target_names=target_names))
+#record time
+stop = timeit.default_timer()
+execution_time = stop - start
+print("SVM RBF Executed in "+str(execution_time))
+
+#Neural Network
+start = timeit.default_timer()
+mlp = MLPClassifier(hidden_layer_sizes=(20,10),max_iter=500)
+mlp.fit(train_data_sample, train_label_sample)
+y_pred_nn = mlp.predict(test_data_sample)
+#confusion matrix, precision, recall, and F1 score
+confmx_nn = confusion_matrix(test_label_sample, y_pred_nn, labels=[1,2,3,4,5,6,7,8,9,10])
+print(confmx_nn)
+target_names = ['1','2','3','4','5','6','7','8','9','10']
+print(classification_report(test_label_sample, y_pred_nn, target_names=target_names))
+#record time
+stop = timeit.default_timer()
+execution_time = stop - start
+print("Neural Network Executed in "+str(execution_time))
